@@ -2,6 +2,7 @@ use std::error::Error;
 use std::fs;
 use std::env;
 
+// Структура входных данных
 pub struct Config {
     pub query: String,
     pub filename: String,
@@ -9,19 +10,27 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(args: &[String]) ->  Result<Config, &'static str>{
-        if args.len() < 3 {
-            return Err("Not enough arguments");
-        }
+    // Создаем структуру входных данных
+    pub fn new(mut args: env::Args) ->  Result<Config, &'static str>{
+        args.next();
 
-        let query = args[1].clone();
-        let filename = args[2].clone();
+        let query = match args.next()  {
+            Some(arg) => arg,
+            None => return Err("Not enough arguments")
+        };
+
+        let filename = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Not enough arguments")
+        };
+
         let igore_case = env::var("IGNORE_CASE").is_ok();
     
         Ok(Config {query, filename, igore_case})
     }
 }
 
+// Основная функция. Запускает чувств-й / не чувств-й к регистру поиск
 pub fn run(config: Config) -> Result<(), Box<dyn Error>>{
     let contents = fs::read_to_string(config.filename)?;
 
@@ -38,29 +47,21 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>>{
     Ok(())
 }
 
-pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
-    let mut results = Vec::new();
 
-    for line in contents.lines() {
-        if line.contains(query) {
-            results.push(line);
-        }
-    }
-    
-    results
+// Регистрозависимый поиск подстроки в каждой строке текста. Возврат вектора строк
+pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
+    contents
+        .lines()
+        .filter(|st|st.contains(query))
+        .collect()
 }
 
+// РегистроНЕзависимый поиск подстроки в каждой строке текста. Возврат вектора строк
 pub fn search_case_insensitive<'a> (query: &str, contents: &'a str) -> Vec<&'a str> {
-    let mut result = Vec::new();
-    let query = query.to_lowercase();
-    
-    for line in contents.lines() {
-        if line.to_lowercase().contains(&query) {
-            result.push(line);
-        }
-    }
-
-    result
+    contents
+        .lines()
+        .filter(|st|st.to_lowercase().contains(&query.to_lowercase()))
+        .collect()
 }
 
 #[cfg(test)]
@@ -68,6 +69,7 @@ mod tests {
     use super::*;
 
     #[test]
+    // регистроНЕзависимый поиск
     fn case_sensitive() {
         let query = "duct";
         let contents = "\
@@ -79,6 +81,7 @@ Duct tape.";    // если делать выравнивание, то появ
     }
 
     #[test]
+    // регистрозависимый поиск
     fn case_insensitive() {
         let query = "rUsT";
         let contents = "\

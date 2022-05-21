@@ -3,8 +3,8 @@ use std::process;
 use minigrep::Config;
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    let config = Config::new(&args).unwrap_or_else(|_err|{
+    // Входные данные
+    let config = Config::new(env::args()).unwrap_or_else(|_err|{
         process::exit(1);
     });
 
